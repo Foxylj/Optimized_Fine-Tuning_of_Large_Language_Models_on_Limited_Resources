@@ -8,7 +8,7 @@ Run follow code in terninal:
 $ python -m torch.distributed.run --nproc_per_node 1 ../llama/example_text_completion.py --ckpt_dir ./model/llama2-7b --tokenizer_path ./model/llama2-7b/tokenizer.model
 ```
 Result:
-```shell
+```
 > initializing model parallel with size 1
 > initializing ddp with size 1
 > initializing pipeline with size 1
