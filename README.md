@@ -5,7 +5,7 @@
 Run follow code in terninal:
 
 ```shell
-$ python -m torch.distributed.run --nproc_per_node 1 ../llama/example_text_completion.py --ckpt_dir ./model/llama2-7b --tokenizer_path ./model/llama2-7b/tokenizer.model
+$ python -m torch.distributed.run --nproc_per_node 1 ./meta-llama2-7b/example_text_completion.py --ckpt_dir ./meta-llama2-7b/checkpoint --tokenizer_path ./meta-llama2-7b/tokenizer/tokenizer.model
 ```
 Result:
 ```
