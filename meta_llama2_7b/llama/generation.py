@@ -4,6 +4,7 @@
 import json
 import os
 import sys
+import pdb
 import time
 from pathlib import Path
 from typing import List, Literal, Optional, Tuple, TypedDict
@@ -161,7 +162,6 @@ class Llama:
                 reduction="none",
                 ignore_index=pad_id,
             )
-
         for cur_pos in range(min_prompt_len, total_len):
             logits = self.model.forward(tokens[:, :cur_pos])
             if temperature > 0:

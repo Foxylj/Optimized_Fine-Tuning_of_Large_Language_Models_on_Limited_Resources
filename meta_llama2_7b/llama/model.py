@@ -2,17 +2,14 @@
 # This software may be used and distributed according to the terms of the Llama 2 Community License Agreement.
 
 import math
+import pdb
+
 from dataclasses import dataclass
 from typing import Optional, Tuple
 
-"""import fairscale.nn.model_parallel.initialize as fs_init"""
 import torch
 import torch.nn.functional as F
-"""from fairscale.nn.model_parallel.layers import (
-    ColumnParallelLinear,
-    ParallelEmbedding,
-    RowParallelLinear,
-)"""
+from torch.utils.checkpoint import checkpoint
 from torch import nn
 
 def custom_init(m):
@@ -426,10 +423,6 @@ class Transformer(nn.Module):
         self.vocab_size = params.vocab_size
         self.n_layers = params.n_layers
 
-        """self.tok_embeddings = ParallelEmbedding(
-            params.vocab_size, params.dim, init_method=lambda x: x
-        )"""
-
         self.tok_embeddings = nn.Embedding(params.vocab_size, params.dim)
         nn.init.uniform_(self.tok_embeddings.weight, -0.1, 0.1)
 
@@ -437,10 +430,6 @@ class Transformer(nn.Module):
         for layer_id in range(params.n_layers): self.layers.append(TransformerBlock(layer_id, params))
 
         self.norm = RMSNorm(params.dim, eps=params.norm_eps)
-        """self.output = ColumnParallelLinear(
-            params.dim, params.vocab_size, bias=False, init_method=lambda x: x
-        )"""
-
         self.output = nn.Linear(params.dim, params.vocab_size, bias=False)
         custom_init(self.output)
 
@@ -450,7 +439,7 @@ class Transformer(nn.Module):
             self.params.dim // self.params.n_heads, self.params.max_seq_len * 2
         )
 
-    @torch.inference_mode()
+    #@torch.inference_mode()
     def forward(self, tokens: torch.Tensor):
         """
         Perform a forward pass through the Transformer model.
@@ -473,7 +462,51 @@ class Transformer(nn.Module):
             mask = torch.full((1, 1, seqlen, seqlen), float("-inf"), device=tokens.device)
             mask = torch.triu(mask, diagonal= 1).type_as(h)
 
-        for layer in self.layers: h = layer(h, freqs_cis, mask)
+        for i , layer in enumerate(self.layers):
+            # Apply checkpoint every 2 layer
+            if (i+1)%2==0: h=checkpoint(layer, h, freqs_cis, mask)
+            else: h = layer(h, freqs_cis, mask)
+        #for layer in self.layers: h = layer(h, freqs_cis, mask)
         h = self.norm(h)
         output = self.output(h).float()
+        return output
+
+class LoRA(nn.Module):
+    def __init__(self,
+                 model_weight,
+                 in_features: int,
+                 out_features: int,
+                 r: int = 16,
+                 lora_alpha: int = 32,
+                 lora_dropout: float = 0.05,
+                 ):
+        super(LoRA,self).__init__()
+
+        self.in_features = in_features
+        self.out_features = out_features
+        self.r = r
+        self.lora_alpha = lora_alpha
+        self.lora_dropout = nn.Dropout(lora_dropout)
+
+        self.weight = nn.Parameter(model_weight, requires_grad=False)
+
+        self.lora_A = nn.Parameter(self.weight.new_zeros((r, in_features)))
+        self.lora_B = nn.Parameter(self.weight.new_zeros((out_features, r)))
+        self.scaling = self.lora_alpha / self.r
+        self.weight.requires_grad = False
+        self.reset_parameters()
+
+    def reset_parameters(self):
+        # Initialize A with kaiming uniform and B with zeros
+        nn.init.kaiming_uniform_(self.lora_A, a=math.sqrt(5))
+        nn.init.zeros_(self.lora_B)
+
+    def forward(self, x: torch.Tensor):
+        # Standard linear transformation
+        output = F.linear(x, self.weight)
+
+        # Low-rank adaptation
+        lora_adaptation = self.lora_dropout(x) @ self.lora_A.t() @ self.lora_B.t() * self.scaling
+        output += lora_adaptation
+
         return output
