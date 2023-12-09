@@ -139,21 +139,28 @@ def freeze_parameters(model):
             module.lora_A.requires_grad = True
             module.lora_B.requires_grad = True
 
-
+def save_checkpoint(model,epoch,loss):
+    checkpoint = {
+        'epoch': epoch,
+        'loss': loss,
+        'model_state_dict': model.state_dict(),
+    }
+    torch.save(checkpoint, 'checkpoint/consolidated.00.pth')
 
 def train(
     ckpt_dir: str="./meta_llama2_7b/checkpoint/",
     tokenizer_path: str="./meta_llama2_7b/tokenizer/tokenizer.model",
     max_seq_len: int = 128*4,
-    max_batch_size: int = 2,
-    epochs=5,
-    learning_rate=1e-5,
-    use_amp=True,
+    max_batch_size: int = 1,
+    epochs=50,
+    learning_rate=1e-3,
+    use_amp=False,
     accumulation_steps = 8
 ):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     #device="cpu"
     print(f"Using device: {device}")
+    torch.cuda.set_device(0)
     
 
     checkpoint = torch.load(Path(ckpt_dir) / "consolidated.00.pth", map_location="cpu")
@@ -169,6 +176,7 @@ def train(
     #torch.set_default_tensor_type(torch.cuda.HalfTensor)
     model = Transformer(model_args)
     model.load_state_dict(checkpoint, strict=False)
+
     model.to(device)
 
     data_module = make_supervised_data_module(tokenizer=tokenizer, data_path=DATA_PATH)
@@ -176,7 +184,7 @@ def train(
         data_module["train_dataset"],
         batch_size=max_batch_size,
         collate_fn=data_module["data_collator"],
-        # shuffle=True
+        shuffle=True
     )
 
     replace_with_lora(model)
@@ -188,7 +196,9 @@ def train(
     optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate)
     criterion = torch.nn.CrossEntropyLoss(ignore_index=IGNORE_INDEX)
     scaler = torch.cuda.amp.GradScaler(enabled=use_amp)
+    epoch_loss=[]
     for epoch in range(epochs):
+        sum_loss=0
         for i,batch in enumerate(dataloader):
             input_ids = batch['input_ids'].to(device)
             labels = batch['labels'].to(device)
@@ -203,7 +213,7 @@ def train(
 
             # Scales loss and calls backward() to create scaled gradients
             scaler.scale(loss).backward()
-
+            sum_loss+=loss
             if (i+1)%accumulation_steps==0 or (i+1)==len(dataloader):
                 # Unscales the gradients of optimizer's assigned parameters in-place
                 scaler.unscale_(optimizer)
@@ -212,8 +222,9 @@ def train(
                 scaler.step(optimizer)
                 scaler.update()
                 optimizer.zero_grad()
-
-            print(f"Epoch [{epoch+1}/{epochs}], Step [{i+1}/{len(dataloader)}], Loss: {loss.item() * accumulation_steps}")
+        epoch_loss.append(sum_loss/len(dataloader))
+        #if (min(epoch_loss)==epoch_loss[-1]): save_checkpoint(model,epoch,epoch_loss)
+        if epoch%2==0: print(f"Epoch [{epoch+1}/{epochs}], Loss: {sum_loss}")
 
 if __name__ == "__main__":
     train()

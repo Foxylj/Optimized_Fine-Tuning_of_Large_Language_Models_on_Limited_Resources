@@ -462,11 +462,11 @@ class Transformer(nn.Module):
             mask = torch.full((1, 1, seqlen, seqlen), float("-inf"), device=tokens.device)
             mask = torch.triu(mask, diagonal= 1).type_as(h)
 
-        for i , layer in enumerate(self.layers):
+        """for i , layer in enumerate(self.layers):
             # Apply checkpoint every 2 layer
-            if (i+1)%2==0: h=checkpoint(layer, h, freqs_cis, mask)
-            else: h = layer(h, freqs_cis, mask)
-        #for layer in self.layers: h = layer(h, freqs_cis, mask)
+            if (i+1)%2==0: h=checkpoint(layer, h, freqs_cis, mask,use_reentrant=False)#
+            else: h = layer(h, freqs_cis, mask)"""
+        for layer in self.layers: h = layer(h, freqs_cis, mask)
         h = self.norm(h)
         output = self.output(h).float()
         return output
