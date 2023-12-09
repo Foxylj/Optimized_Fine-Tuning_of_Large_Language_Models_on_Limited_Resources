@@ -1,8 +1,31 @@
+# Project LLM Report
+### Authors
+- #### Lijing Yang
+- #### Zeyu Wang
 
+## 0. Inference & Training
 
-# Report of Project LLM
-### Authors: Lijing Yang, Zeyu Wang
+### Model Setup
+1. Clone the project repository from GitHub.
+2. Due to GitHub's large file storage policy, the Llama2 7B checkpoint is not included in the repository.
+3. Obtain the Llama2 7B checkpoint. <!-- Provide details on where and how to obtain it. -->
+4. Place the checkpoint in `Efficient_Fine_Tuning_LLM_on_Single_GPU/meta_llama2_7b/checkpoint`.
 
+## Training the Model
+1. Ensure all prerequisites are installed and the model checkpoint is in place.
+2. To start fine-tuning the model, run `train.py` in your terminal. The command is as follows:
+``` 
+$ python train.py
+```
+
+## Inference Process
+After training, you can perform inference using the following command:
+```
+python inference.py --ckpt_dir ./checkpoint --tokenizer_path ./meta_llama2_7b/tokenizer/tokenizer.model --max_gen_len 20
+```
+- `--ckpt_dir`: Directory of the checkpoint.
+- `--tokenizer_path`: Path to the tokenizer model.
+- `--max_gen_len`: Maximum generation length for the output.
 
 
 ## 1.Training loss 
