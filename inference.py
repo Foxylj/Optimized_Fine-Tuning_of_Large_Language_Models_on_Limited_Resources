@@ -1,9 +1,11 @@
+import pdb
 import sys
 import fire
 import torch
 import json
 from pathlib import Path
 from typing import List
+import matplotlib.pyplot as plt
 HERE = Path(__file__).parent
 sys.path.append(str(HERE / "meta_llama2_7b"))
 
@@ -22,7 +24,7 @@ def main(
 ): 
     torch.cuda.set_device(0)
     torch.manual_seed(1)
-    ckpt_path = Path(ckpt_dir) / "path_to_checkpoint.pth"
+    ckpt_path = Path(ckpt_dir) / "consolidated.00.pth"
     checkpoint = torch.load(ckpt_path, map_location="cpu")
 
     with open(Path(ckpt_dir) / "params.json", "r") as f: params = json.loads(f.read())
@@ -37,18 +39,19 @@ def main(
     torch.set_default_tensor_type(torch.cuda.HalfTensor)
     model = Transformer(model_args)
     model.load_state_dict(checkpoint["model_state_dict"], strict=False)
+    
 
     generator=Llama(model=model,tokenizer=tokenizer)
 
     prompts: List[str] = [
-        "Below is an instruction that describes a task, paired with an input that provides further context. \
-        Write a response that appropriately completes the request.\n\n ### Instruction:\n Give three tips for staying healthy.\n\n### Response:",
-        "Below is an instruction that describes a task, paired with an input that provides further context. \
-        Write a response that appropriately completes the request.\n\n ### Instruction:\n What are the three primary colors? \n\n### Response:",
-        "Below is an instruction that describes a task, paired with an input that provides further context. \
-        Write a response that appropriately completes the request.\n\n ### Instruction:\n How am I supposed to get a better grade? \n\n### Response:",
-        "Below is an instruction that describes a task, paired with an input that provides further context. \
-        Write a response that appropriately completes the request.\n\n ### Instruction:\n How to be happy every day? \n\n### Response:"
+        "Below is an instruction that describes a task, paired with an input that provides further context.\n\
+        Write a response that appropriately completes the request.\n\n ### Instruction:\n Give three tips for staying healthy.\n\n ### Response:",
+        "Below is an instruction that describes a task, paired with an input that provides further context.\n\
+        Write a response that appropriately completes the request.\n\n ### Instruction:\n What are the three primary colors? \n\n ### Response:",
+        "Below is an instruction that describes a task, paired with an input that provides further context.\n\
+        Write a response that appropriately completes the request.\n\n ### Instruction:\n How am I supposed to get a better grade? \n\n ### Response:",
+        "Below is an instruction that describes a task, paired with an input that provides further context.\n\
+        Write a response that appropriately completes the request.\n\n ### Instruction:\n How to be happy every day? \n\n ### Response:"
     ]
 
     results = generator.text_completion(
@@ -58,9 +61,18 @@ def main(
         top_p=top_p,
     )
     for prompt, result in zip(prompts, results):
-        print(prompt)
+        print("\n",prompt)
         print(f"> {result['generation']}")
         print("\n============================================================================================================================\n")
+
+    loss=[i.detach().numpy() for i in checkpoint["loss"]]
+    epoch_len=len(loss)
+    plt.plot(range(epoch_len),loss)
+    plt.title("Loss VS. Epochs")
+    plt.xlabel("Epochs")
+    plt.ylabel("Loss")
+    plt.savefig('./figures/Epoch_loss.png')
+    
 
 if __name__ == "__main__":
     fire.Fire(main)
