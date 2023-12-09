@@ -25,7 +25,7 @@ from meta_llama2_7b.llama.tokenizer import Tokenizer
 from meta_llama2_7b.llama import Llama,ModelArgs
 
 IGNORE_INDEX = -1
-DATA_PATH="./alpaca_data_dummy_2.json"
+DATA_PATH="./dataset/alpaca_data_dummy_2.json"
 torch.manual_seed(1024)
 
 PROMPT_DICT = {
@@ -160,8 +160,6 @@ def train(
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     #device="cpu"
     print(f"Using device: {device}")
-    torch.cuda.set_device(0)
-    
 
     checkpoint = torch.load(Path(ckpt_dir) / "consolidated.00.pth", map_location="cpu")
     with open(Path(ckpt_dir) / "params.json", "r") as f: params = json.loads(f.read())
