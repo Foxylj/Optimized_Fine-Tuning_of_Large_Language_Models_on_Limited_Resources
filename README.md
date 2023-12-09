@@ -1,22 +1,16 @@
 
 
 # Report of Project LLM
-
-##### Authors: Lijing Yang, Zeyu Wang
-
+### Authors: Lijing Yang, Zeyu Wang
 
 
-### 1.Training loss 
 
-#### Epoch loss
-
-###### for 50 epochs 
+## 1.Training loss 
+- ### Epochs wise
 
 ![0](./figures/Epoch_loss.png)
 
-#### Step loss
-
-###### for 24 epochs
+- ### Step wise
 
 ![1](./figures/training_loss.png)
 
