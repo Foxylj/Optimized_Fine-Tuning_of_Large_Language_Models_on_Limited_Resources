@@ -6,7 +6,7 @@
 
 ### 1.Training loss (for 24 epochs)
 
-![1](./figures/training loss.png)
+![1](./figures/training_loss.png)
 
 
 
