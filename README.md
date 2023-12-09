@@ -21,7 +21,7 @@ $ python train.py
 ## Inference Process
 After training, you can perform inference using the following command:
 ```
-python inference.py --ckpt_dir ./checkpoint --tokenizer_path ./meta_llama2_7b/tokenizer/tokenizer.model --max_gen_len 20
+$ python inference.py --ckpt_dir ./checkpoint --tokenizer_path ./meta_llama2_7b/tokenizer/tokenizer.model --max_gen_len 20
 ```
 - `--ckpt_dir`: Directory of the checkpoint.
 - `--tokenizer_path`: Path to the tokenizer model.
